@@ -6,6 +6,7 @@ from bokeh.layouts import row, column, gridplot
 from bokeh.models import ColumnDataSource, Slider, Select
 from bokeh.plotting import curdoc, figure
 from bokeh.driving import count
+from bokeh.models.widgets import PreText # use tables https://github.com/bokeh/bokeh/blob/master/bokeh/models/widgets/tables.py
 
 BUFSIZE = 200
 MA12, MA26, EMA12, EMA26 = '12-tick Moving Avg', '26-tick Moving Avg', '12-tick EMA', '26-tick EMA'
@@ -34,6 +35,7 @@ mean = Slider(title="mean", value=0, start=-0.01, end=0.01, step=0.001)
 stddev = Slider(title="stddev", value=0.04, start=0.01, end=0.1, step=0.01)
 mavg = Select(value=MA12, options=[MA12, MA26, EMA12, EMA26])
 
+stats = PreText(text='', width=500)
 
 def _create_prices(t):
     last_average = 100 if t == 0 else source.data['average'][-1]
@@ -66,6 +68,8 @@ def _ema(prices, days=10):
 def update(t):
     open, high, low, close, average = _create_prices(t)
     color = "green" if open < close else "red"
+
+    stats.text = str(close)
 
     new_data = dict(
         time=[t],
@@ -100,6 +104,7 @@ def update(t):
     new_data['macd9'] = [macd9]
     new_data['macdh'] = [macd - macd9]
 
+
     source.stream(new_data, 300)
 
 
@@ -107,10 +112,13 @@ curdoc().title = "OHLC"
 
 # curdoc().add_periodic_callback(update, 50)
 
-button = Button(label='Press Me')
+button = Button(label='Next Bar')
 button.on_click(update)
 
-curdoc().add_root(column(row(mean, stddev, mavg, button),
+curdoc().add_root(column(row(mean, stddev, mavg, button, stats),
                          gridplot([[p], [p2]], toolbar_location="left", plot_width=1000)
                          )
                   )
+
+for _ in xrange(50):
+    update()
